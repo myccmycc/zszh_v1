@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:SkinnableContainer xmlns:fx="http://ns.adobe.com/mxml/2009" 
+					  xmlns:s="library://ns.adobe.com/flex/spark" 
+					  xmlns:mx="library://ns.adobe.com/flex/mx" width="400" height="300" xmlns:local="*" xmlns:ns="zszh_WorkSpace2D.*"
+					  enterFrame="skinnablecontainer_enterFrameHandler(event)">
+	<fx:Script>
+		<![CDATA[
+			
+			protected function skinnablecontainer_enterFrameHandler(event:Event):void
+			{
+				if(scaleBt&&WorkSpace2D&&WorkSpace2D.GetGrid())
+					scaleBt.label=WorkSpace2D.GetGrid().scaleX.toString();
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<ns:WorkSpace2D id="WorkSpace2D" width="100%" height="100%"/>
+	<s:Button id="scaleBt" width="100" height="20" bottom="20"/>
+	
+</s:SkinnableContainer>
