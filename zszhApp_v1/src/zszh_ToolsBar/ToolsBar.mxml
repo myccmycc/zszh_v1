@@ -9,14 +9,23 @@
 	<![CDATA[
 		import mx.events.FlexEvent;
 		
+		import zszh_WorkSpace2D.Object2D_InWall;
 		import zszh_WorkSpace2D.Object2D_Model;
-		import zszh_WorkSpace2D.Object2D_PartitionWall;
 		import zszh_WorkSpace2D.Object2D_Room;
 		import zszh_WorkSpace2D.WorkSpace2D;
 		import zszh_WorkSpace2D.WorkSpace2DContainer;
+		
 		import zszh_WorkSpace3D.WorkSpace3D;
 		
+		[Embed(source="embeds/ToolsBar/toolBar_selected1.png")]
+		[Bindable]
+		public var Button_select1:Class;
 
+		[Embed(source="embeds/ToolsBar/toolBar_selected2.png")]
+		[Bindable]
+		public var Button_select2:Class;
+
+		
 		[Embed(source="embeds/ToolsBar/toolbar_1.png")]
 		[Bindable]
 		public var Button1_down:Class;
@@ -80,7 +89,73 @@
 			_work2D=parentApplication.GetWorkSpace2D();
 			_work3D=parentApplication.GetWorkSpace3D();
 			_work2DContainer=parentApplication.GetWorkSpace2DContainer();
+			
+			Selected2.visible=true;
+			Selected2.x=Button6.x-7;
+			Selected2.y=Button6.y+5;
 		}
+		
+		
+		protected function Button_MouseDown(event:MouseEvent):void
+		{
+			var nameStr:String=event.target.name;
+			if(nameStr=="Button1")
+			{
+				UnDo(event);
+			}
+			else if(nameStr=="Button2")
+			{
+				ReDo(event);
+			}
+			else if(nameStr=="Button3")
+			{}
+			else if(nameStr=="Button4")
+			{}
+			else if(nameStr=="Button5")
+			{
+				FPSVisit(event);
+			}
+			else if(nameStr=="Button6")
+			{
+				ShowWorkspace2D(event);
+			}
+			else if(nameStr=="Button7")
+			{
+				ShowWorkspace3D(event);
+			}
+			else if(nameStr=="Button8")
+			{}
+			else if(nameStr=="Button9")
+			{}
+			else if(nameStr=="Button10")
+			{
+				ShowCenter(event);
+			}
+			else if(nameStr=="Button11")
+			{}
+			
+			if(nameStr=="Button3" || nameStr=="Button4" ||nameStr=="Button5" || nameStr=="Button6" ||nameStr=="Button7")
+			{
+				Selected2.visible=true;
+				Selected2.x=event.target.x-7;
+				Selected2.y=event.target.y-6;
+			}
+		}
+		protected function Button_MouseOver(event:MouseEvent):void
+		{
+			var nameStr:String=event.target.name;
+			if(nameStr=="Button1" || nameStr=="Button2" )
+			{
+				Selected1.visible=true;
+				Selected1.x=event.target.x-6;
+				Selected1.y=event.target.y-2;
+				
+			}
+			
+		}
+		
+		
+		
 		
 		protected function SaveToXML(event:MouseEvent):void
 		{
@@ -127,6 +202,15 @@
 			_work3D._cameraCenter.z=-(_work2D._yMax-_work2D._yMin)/2-_work2D._yMin+3200;
 			_work2DContainer.visible=false;
 			
+			_work3D.NormalVisit();
+			
+		}
+		
+		private function FPSVisit(event:MouseEvent):void
+		{
+			if(_work3D.visible==false)
+				ShowWorkspace3D(event);
+			_work3D.FPSVisit();
 		}
 		
 		protected function ShowCenter(event:MouseEvent):void
@@ -151,6 +235,8 @@
 			CommandManager.Instance.Redo();
 		}
 		
+		
+		
 		private function Show3DRooms():void
 		{
 			_work3D.ClearRoom();
@@ -161,33 +247,11 @@
 				var obj:DisplayObject=_work2D.GetObject2D().getChildAt(i);
 				
 				if(obj is Object2D_Room)
-					
 				{
 					var room2d:Object2D_Room= obj as Object2D_Room;		
-					var vertex_old:Vector.<Number>= (room2d as Object2D_Room)._vertexVec1;
-					
-					var vertex_old2:Vector.<Number>= (room2d as Object2D_Room)._vertexVec2;
-					var vertex_old3:Vector.<Number>= (room2d as Object2D_Room)._vertexVec3;
-					
-					var vertex_new:Vector.<Number>=new Vector.<Number>;
-					var vertex_new2:Vector.<Number>=new Vector.<Number>;
-					var vertex_new3:Vector.<Number>=new Vector.<Number>;
-					
 					if(room2d.className=="Object2D_Room"&&room2d.visible)
-					{
-						for(var j:int=0;j<vertex_old.length;j+=2)
-						{
-							vertex_new.push(room2d.x+vertex_old[j]-3200);
-							vertex_new.push(-room2d.y+vertex_old[j+1]+3200);
-							
-							vertex_new2.push(room2d.x+vertex_old2[j]-3200);
-							vertex_new2.push(-room2d.y+vertex_old2[j+1]+3200);
-							
-							vertex_new3.push(room2d.x+vertex_old3[j]-3200);
-							vertex_new3.push(-room2d.y+vertex_old3[j+1]+3200);
-						}
-						_work3D.AddRoom(vertex_new,vertex_new2,vertex_new3,room2d._floor._floorTex, room2d.name);
-						
+					{ 
+						_work3D.AddRoom(room2d);
 						Show3DWallsInRoom(room2d);
 						Show3DModelInRoom(room2d);
 					}
@@ -200,10 +264,10 @@
 			for(var i:int=0;i<room.numChildren;i++)
 			{
 				var obj:DisplayObject=room.getChildAt(i);
-				if(obj is Object2D_PartitionWall)
+				if(obj is Object2D_InWall)
 				{
 					var pos:Array=new Array;
-					var vertex_old:Vector.<Number>= (obj as Object2D_PartitionWall)._vertexVec;
+					var vertex_old:Vector.<Number>= (obj as Object2D_InWall)._vertexVec;
 					var vertex_new:Vector.<Number>=new Vector.<Number>;
 					
 					for(var j:int=0;j<vertex_old.length;j+=2)
@@ -224,32 +288,48 @@
 				if(obj is Object2D_Model)
 				{
 					var model:Object2D_Model = obj as Object2D_Model;
-					var mPos:Vector3D=new Vector3D();
-					mPos.x=room.x+model.x+model._topImage.bitmapData.width/2-3200;
-					mPos.y=0;
-					mPos.z=-room.y-model.y-model._topImage.bitmapData.height/2+3200;
-					_work3D.AddModels(model._resourcePath,model._modelName,mPos,model.name); 
+					_work3D.AddModels(model,room); 
 				}	
 			}
 		}
+		
+
+		public function SetScalePostion(pos:int):void//0-90
+		{
+			daxiao2.x=daxiao1.x+(daxiao1.width-10)*pos/100;
+		}
+		
+		
 	]]>
 	</fx:Script>
 	
 	<s:Image source="@Embed('embeds/ToolsBar/toolBar_Bg.png')"  />
-	<s:Button id="Button1" name="Button1" x="35" verticalCenter="0" width="25" height="25" skinClass="zszh_ToolsBar.Skin_ToolsBarBt" icon="{Button1_down}" buttonMode="true" click="UnDo(event)" />
-	<s:Button id="Button2" name="Button2" x="70" verticalCenter="0" width="25" height="25" skinClass="zszh_ToolsBar.Skin_ToolsBarBt" icon="{Button2_down}" buttonMode="true" click="ReDo(event)" />
 	
-	<s:Button id="Button3" name="Button3" x="125" verticalCenter="0" width="25" height="25" skinClass="zszh_ToolsBar.Skin_ToolsBarBt" icon="{Button3_down}" buttonMode="true" click="SaveToXML(event)"/>
-	<s:Button id="Button4" name="Button4" x="170" verticalCenter="0" width="30" height="25" skinClass="zszh_ToolsBar.Skin_ToolsBarBt" icon="{Button4_down}" buttonMode="true" />
-	<s:Button id="Button5" name="Button5" x="220" verticalCenter="0" width="30" height="25" skinClass="zszh_ToolsBar.Skin_ToolsBarBt" icon="{Button5_down}" buttonMode="true" />
+	<s:Image id="Selected1" source="@Embed('embeds/ToolsBar/toolBar_selected1.png')" visible="false"  />
+	<s:Image id="Selected2" source="@Embed('embeds/ToolsBar/toolBar_selected2.png')" visible="false"  />
 	
-	<s:Button id="Button6" name="Button6" x="275" verticalCenter="0" width="30" height="25" skinClass="zszh_ToolsBar.Skin_ToolsBarBt" icon="{Button6_down}" click="ShowWorkspace2D(event)" buttonMode="true" />
-	<s:Button id="Button7" name="Button7" x="315" verticalCenter="0" width="30" height="25" skinClass="zszh_ToolsBar.Skin_ToolsBarBt" icon="{Button7_down}" click="ShowWorkspace3D(event)" buttonMode="true" />
+	
+	
+	<s:Button id="Button1" name="Button1" x="35" verticalCenter="0" width="25" height="25" skinClass="zszh_ToolsBar.Skin_ToolsBarBt" icon="{Button1_down}" buttonMode="true" click="Button_MouseDown(event)" mouseOver="Button_MouseOver(event)" />
+	<s:Button id="Button2" name="Button2" x="70" verticalCenter="0" width="25" height="25" skinClass="zszh_ToolsBar.Skin_ToolsBarBt" icon="{Button2_down}" buttonMode="true" click="Button_MouseDown(event)" mouseOver="Button_MouseOver(event)"/>
+	
+	<s:Button id="Button3" name="Button3" x="125" verticalCenter="0" width="25" height="25" skinClass="zszh_ToolsBar.Skin_ToolsBarBt" icon="{Button3_down}" buttonMode="true" click="Button_MouseDown(event)" mouseOver="Button_MouseOver(event)"/>
+	<s:Button id="Button4" name="Button4" x="170" verticalCenter="0" width="30" height="25" skinClass="zszh_ToolsBar.Skin_ToolsBarBt" icon="{Button4_down}" buttonMode="true" click="Button_MouseDown(event)" mouseOver="Button_MouseOver(event)"/>
+	<s:Button id="Button5" name="Button5" x="220" verticalCenter="0" width="30" height="25" skinClass="zszh_ToolsBar.Skin_ToolsBarBt" icon="{Button5_down}" buttonMode="true" click="Button_MouseDown(event)" mouseOver="Button_MouseOver(event)"/>
+	
+	<s:Button id="Button6" name="Button6" x="275" verticalCenter="0" width="30" height="25" skinClass="zszh_ToolsBar.Skin_ToolsBarBt" icon="{Button6_down}" click="Button_MouseDown(event)" buttonMode="true" mouseOver="Button_MouseOver(event)"/>
+	<s:Button id="Button7" name="Button7" x="315" verticalCenter="0" width="30" height="25" skinClass="zszh_ToolsBar.Skin_ToolsBarBt" icon="{Button7_down}" click="Button_MouseDown(event)" buttonMode="true" mouseOver="Button_MouseOver(event)"/>
 
-	<s:Button id="Button8" name="Button8" x="380" verticalCenter="0" width="25" height="25" skinClass="zszh_ToolsBar.Skin_ToolsBarBt" icon="{Button8_down}" buttonMode="true" />
-	<s:Button id="Button9" name="Button9" x="495" verticalCenter="0" width="25" height="25" skinClass="zszh_ToolsBar.Skin_ToolsBarBt" icon="{Button9_down}" buttonMode="true" />
+	<s:Button id="Button8" name="Button8" x="370" verticalCenter="0" width="25" height="25" skinClass="zszh_ToolsBar.Skin_ToolsBarBt" icon="{Button8_down}" buttonMode="true" />
+	<s:Button id="Button9" name="Button9" x="498" verticalCenter="0" width="25" height="25" skinClass="zszh_ToolsBar.Skin_ToolsBarBt" icon="{Button9_down}" buttonMode="true" />
 	
-	<s:Button id="Button10" name="Button10" x="545" verticalCenter="0" width="25" height="25" skinClass="zszh_ToolsBar.Skin_ToolsBarBt" icon="{Button10_down}" click="ShowCenter(event)" buttonMode="true" />
+	<s:SkinnableContainer x="395" verticalCenter="3">
+		<s:Image id="daxiao1" x="0" source="@Embed('embeds/ToolsBar/toolBar_daxiao1.png')"   />
+		<s:Image id="daxiao2" x="0" source="@Embed('embeds/ToolsBar/toolBar_daxiao2.png')"   />
+	</s:SkinnableContainer>
+	
+	
+	<s:Button id="Button10" name="Button10" x="545" verticalCenter="0" width="25" height="25" skinClass="zszh_ToolsBar.Skin_ToolsBarBt" icon="{Button10_down}" click="Button_MouseDown(event)" buttonMode="true" />
 	<s:Button id="Button11" name="Button11" x="585" verticalCenter="0" width="25" height="25" skinClass="zszh_ToolsBar.Skin_ToolsBarBt" icon="{Button11_down}" buttonMode="true" />
 
 

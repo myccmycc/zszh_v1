@@ -1,6 +1,8 @@
 package zszh_WorkSpace2D
 {
 	import flash.display.Bitmap;
+	import flash.display.BitmapData;
+	import flash.display.DisplayObject;
 	import flash.display.Loader;
 	import flash.events.Event;
 	import flash.events.MouseEvent;
@@ -19,9 +21,14 @@ package zszh_WorkSpace2D
 	
 	public class Room_2DFloor extends Object2D_Base
 	{
+		
+		[Embed(source="../embeds/rooms/TextureFloor.jpg")]
+		private var _TextureFloor:Class;
+		private var _floorBitmap:Bitmap;
+		
 		public  var _floorTex:String="zszh_res/basic/wall/TextureFloor.jpg";
 		private var _floorTexLoader:Loader;
-		private var _floorBitmap:Bitmap;
+		
 		private var _uvVec:Vector.<Number>;
 		private var _uvScale:int;
 		
@@ -31,10 +38,7 @@ package zszh_WorkSpace2D
 		public function Room_2DFloor()
 		{
 			super();
-			_uvScale=100;
-			this.addEventListener(DragEvent.DRAG_ENTER,DragEnter2D);
-			this.addEventListener(DragEvent.DRAG_DROP,OnDrap);
-			this.addEventListener(FlexEvent.CREATION_COMPLETE,OnCreation_Complete);
+			addEventListener(FlexEvent.CREATION_COMPLETE,OnCreation_Complete);
 		}
 		
 		private function OnCreation_Complete(e:FlexEvent):void
@@ -45,16 +49,14 @@ package zszh_WorkSpace2D
 			addEventListener(MouseEvent.MOUSE_UP,FloorMouseUp);
 			addEventListener(MouseEvent.RIGHT_CLICK,FloorMouseClick);
 		
-			_floorTexLoader = new Loader();
-			_floorTexLoader.contentLoaderInfo.addEventListener(Event.COMPLETE,onComplete);
-			_floorTexLoader.load(new URLRequest(_floorTex));
+			addEventListener(DragEvent.DRAG_ENTER,DragEnter2D);
+			addEventListener(DragEvent.DRAG_DROP,OnDrap);
+			
 			_uvVec  =	new Vector.<Number>();
-		
-			function onComplete(e:Event):void
-			{
-				_floorBitmap = Bitmap(_floorTexLoader.content);
-				Draw();
-			}
+			_uvScale=100;
+			_floorBitmap =new _TextureFloor();
+			Draw();
+			 
 		}
 		
 		override public function Draw():void
@@ -158,7 +160,19 @@ package zszh_WorkSpace2D
 		}
 
 		
-		
+		public function SetFloorTexture(resourcePath:String):void
+		{
+			_floorTex=resourcePath;
+			_floorTexLoader = new Loader();
+			_floorTexLoader.contentLoaderInfo.addEventListener(Event.COMPLETE,onComplete);
+			_floorTexLoader.load(new URLRequest(_floorTex));
+			
+			function onComplete(e:Event):void
+			{
+				_floorBitmap = Bitmap(_floorTexLoader.content);
+				Draw();
+			}
+		}
 		//----popup window menu function-----------------
 		private function OnDeleteThisRoom(e:Event):void
 		{
@@ -167,12 +181,20 @@ package zszh_WorkSpace2D
 		}
 		
 		private function OnChangeFloor(e:Event):void
-		{}
+		{
+			parentApplication.ProductsMenuMain.ButtonOneMouseDown("Button4",false);
+			parentApplication.ProductsMenuMain.ButtonTwoMouseDown("Button41");
+		}
 		private function OnChangeFloorTile(e:Event):void
-		{}
-		
+		{
+			parentApplication.ProductsMenuMain.ButtonOneMouseDown("Button4",false);
+			parentApplication.ProductsMenuMain.ButtonTwoMouseDown("Button44");
+		}
 		private function OnAddFurniture(e:Event):void	
-		{}
+		{
+			parentApplication.ProductsMenuMain.ButtonOneMouseDown("Button1",false);
+			parentApplication.ProductsMenuMain.ButtonTwoMouseDown("Button13");
+		}
 		
 		//--------------floor mouse event---------------------------
 		private function FloorMouseOver(e:MouseEvent):void
@@ -264,21 +286,13 @@ package zszh_WorkSpace2D
 			
 			if(className=="diban")
 			{
-				_floorTex=resourcePath+"texture.jpg";
-				_floorTexLoader = new Loader();
-				_floorTexLoader.contentLoaderInfo.addEventListener(Event.COMPLETE,onComplete);
-				_floorTexLoader.load(new URLRequest(_floorTex));
-				
-				function onComplete(e:Event):void
-				{
-					_floorBitmap = Bitmap(_floorTexLoader.content);
-					Draw();
-				}
+				var newFloorTex=resourcePath+"texture.jpg";
+				CommandManager.Instance.ChangeRoomFloor(this,_floorTex,newFloorTex);
 			}
 				
 			else if(className=="Wall_2D")
 			{
-				var wall:Object2D_PartitionWall =new Object2D_PartitionWall(classArgument);
+				var wall:Object2D_InWall =new Object2D_InWall(classArgument);
 				wall.x=event.localX;
 				wall.y=event.localY;
 				wall.name=wall.className+room_2d.numChildren;
@@ -292,6 +306,72 @@ package zszh_WorkSpace2D
 				model.y=event.localY;
 				model.name=model.className+room_2d.numChildren;
 				CommandManager.Instance.Add(room_2d,model);
+			}
+			
+			else if(className=="window")
+			{
+				var window:Room_2DWindow =new Room_2DWindow(new Point(-100,0),new Point(100,0));
+				
+				var pos:int=Object2D_Utility.FindShortestEdge(room_2d._vertexVec1,new Point(event.localX,event.localY));
+				
+				
+				for(var i:int=0;i<room_2d.numChildren;i++)
+				{
+					var obj:DisplayObject=room_2d.getChildAt(i);
+					
+					if(obj is Room_2DWall)
+					{
+						var wallObj:Room_2DWall=obj as Room_2DWall;
+						if((wallObj._postionInRoom+2)%room_2d._vertexVec1.length==pos)
+						{
+							window.x=event.localX;
+							window.y=event.localY;
+							window.name=window.className+room_2d.numChildren;
+							CommandManager.Instance.Add(wallObj,window);
+							break;
+						}
+					}
+				 
+				}
+				
+				
+				//window.x=event.localX;
+				//window.y=event.localY;
+				//window.name=window.className+room_2d.numChildren;
+				//CommandManager.Instance.Add(room_2d,window);
+			}
+			
+			else if(className=="door")
+			{
+				var door:Room_2DDoor =new Room_2DDoor(new Point(-100,0),new Point(100,0));
+				
+				var pos:int=Object2D_Utility.FindShortestEdge(room_2d._vertexVec1,new Point(event.localX,event.localY));
+				
+				
+				for(var i:int=0;i<room_2d.numChildren;i++)
+				{
+					var obj:DisplayObject=room_2d.getChildAt(i);
+					
+					if(obj is Room_2DWall)
+					{
+						var wallObj:Room_2DWall=obj as Room_2DWall;
+						if((wallObj._postionInRoom+2)%room_2d._vertexVec1.length==pos)
+						{
+							door.x=event.localX;
+							door.y=event.localY;
+							door.name=door.className+room_2d.numChildren;
+							CommandManager.Instance.Add(wallObj,door);
+							break;
+						}
+					}
+					
+				}
+				
+				
+				//window.x=event.localX;
+				//window.y=event.localY;
+				//window.name=window.className+room_2d.numChildren;
+				//CommandManager.Instance.Add(room_2d,window);
 			}
 		}
 		

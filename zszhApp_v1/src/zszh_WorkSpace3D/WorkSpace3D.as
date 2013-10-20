@@ -3,10 +3,12 @@ package zszh_WorkSpace3D
 	import flash.display.Bitmap;
 	import flash.display.Loader;
 	import flash.events.Event;
+	import flash.events.KeyboardEvent;
 	import flash.events.MouseEvent;
 	import flash.geom.Point;
 	import flash.geom.Vector3D;
 	import flash.net.URLRequest;
+	import flash.ui.Keyboard;
 	
 	import mx.core.UIComponent;
 	import mx.events.DragEvent;
@@ -17,6 +19,7 @@ package zszh_WorkSpace3D
 	import away3d.cameras.lenses.OrthographicLens;
 	import away3d.containers.ObjectContainer3D;
 	import away3d.containers.View3D;
+	import away3d.controllers.FirstPersonController;
 	import away3d.controllers.HoverController;
 	import away3d.core.base.SubMesh;
 	import away3d.core.math.MathConsts;
@@ -51,7 +54,11 @@ package zszh_WorkSpace3D
 	import away3d.tools.utils.Ray;
 	import away3d.utils.Cast;
 	
-	import zszh_WorkSpace2D.Object2D_PartitionWall;
+	import zszh_WorkSpace2D.Object2D_InWall;
+	import zszh_WorkSpace2D.Object2D_Model;
+	import zszh_WorkSpace2D.Object2D_Room;
+	
+	import zszh_WorkSpace3D.WorkSpace3D_SmallView;
 	
 	public class WorkSpace3D extends UIComponent
 	{
@@ -59,18 +66,9 @@ package zszh_WorkSpace3D
 		//engine variables
 		private var _view3d:View3D;
 		private var _camera:Camera3D;
-		private var _cameraController:HoverController;
-		
-		private var _view3d2:View3D;
-		private var _camera2:Camera3D;
-		private var _cameraController2:HoverController;
-		
-		//navigation variables
-		private var _cameraMove:Boolean = false;
-		private var lastPanAngle:Number;
-		private var lastTiltAngle:Number;
-		private var lastMouseX:Number;
-		private var lastMouseY:Number;
+		private var _hoverController:HoverController;
+		private var _fpsController:FirstPersonController;
+
 		
 		
 		private var _directionLight:DirectionalLight;
@@ -91,81 +89,19 @@ package zszh_WorkSpace3D
 		public var _cameraCenter:ObjectContainer3D;
 		public var _centerPos:Vector3D;
 		
-		private var _meshArray:Array;
+
+		
+		private var _smallView:WorkSpace3D_SmallView;
+		
 		
 		public function WorkSpace3D()
 		{
 			super();  
-			
-			//3D loader	
-			//AssetLibrary.enableParser(AWD2Parser);
-			//AssetLibrary.addEventListener(AssetEvent.ASSET_COMPLETE, onAssetComplete);
- 			this.addEventListener(DragEvent.DRAG_ENTER,OnDragEnter);
-			this.addEventListener(DragEvent.DRAG_DROP,OnDragDrop);
+ 			addEventListener(DragEvent.DRAG_ENTER,OnDragEnter);
+			addEventListener(DragEvent.DRAG_DROP,OnDragDrop);
 			addEventListener(FlexEvent.CREATION_COMPLETE,OnCreation_Complete);
 		}
-	
-		private function onAssetComplete(event:AssetEvent):void
-		{
-			trace(event.asset.assetType);
-			if(event.asset.assetType=="mesh")
-			{
-				_modelsContainer3D.addChild(Mesh(event.asset));
-				
-			//	var model:Model_3D=new Model_3D(resPath,modelName,pos);
-				//_modelsContainer3D.addChild(model);
-			}
-		}
-		
-		
-		//--------punblic functions------------------------------------------
-		public function ClearRoom():void
-		{
-			for(var i:int=_roomContainer3D.numChildren-1;i>=0;i--)
-				_roomContainer3D.removeChildAt(i);
-			
-		}
-		public function AddRoom(pos1:Vector.<Number>,pos2:Vector.<Number>,pos3:Vector.<Number>,floorTex:String,roomName:String):void
-		{
-			var room:Room_3D=new Room_3D(pos1,pos2,pos3,floorTex,_lightPicker);
-			room.name=roomName;
-			_roomContainer3D.addChild(room);
-		}
-		
-		public function ClearWallInside():void
-		{
-			for(var i:int=_wallInsideContainer3D.numChildren-1;i>=0;i--)
-				_wallInsideContainer3D.removeChildAt(i);
-			
-		}
-		public function AddWallInside(pos1:Vector.<Number>,wallName:String):void
-		{
-			var wallInside:WallInside_3D=new WallInside_3D(pos1,_lightPicker);
-			wallInside.name=wallName;
-			_wallInsideContainer3D.addChild(wallInside);
-		}
-		
-		
-		public function ClearModels():void
-		{
-			for(var i:int=_modelsContainer3D.numChildren-1;i>=0;i--)
-				_modelsContainer3D.removeChildAt(i);
-			
-			//AssetLibrary.removeAllAssets();
 
-		}
-		
-		public function AddModels(resPath:String,modelName:String,pos:Vector3D,name:String):void
-		{	
-			//var modelFile:String=resPath+modelName+".awd";
-			//AssetLibrary.load(new URLRequest(modelFile));
-			
-			var model:Model_3D=new Model_3D(resPath,modelName,pos,_lightPicker);
-			model.name=name;
-			_modelsContainer3D.addChild(model);
-		}
-		
-	
 		
 		//--------------init the workspace3d-------------------------
 		private function OnCreation_Complete(e:FlexEvent):void
@@ -190,9 +126,9 @@ package zszh_WorkSpace3D
 			_cameraCenter.addChild(new Trident(50));
 			_view3d.scene.addChild(_cameraCenter);
 			
-			_cameraController = new HoverController(_camera,_cameraCenter, 180,60, 800);
-			_cameraController.maxTiltAngle=45;
-			_cameraController.minTiltAngle=25;
+			_hoverController = new HoverController(_camera,_cameraCenter, 180,60, 800);
+			_hoverController.maxTiltAngle=45;
+			_hoverController.minTiltAngle=25;
 			
 			//setup light
 			_directionLight = new DirectionalLight();
@@ -228,51 +164,16 @@ package zszh_WorkSpace3D
 			_view3d.scene.addChild(_wallInsideContainer3D);
 			_view3d.scene.addChild(_modelsContainer3D);
 			
-			InitView3dSmall();
-			
-		}
-		
-		
-		private function InitView3dSmall():void
-		{
-			
-			_view3d2=new View3D();
-			_view3d2.backgroundAlpha=0;
-			_view3d2.backgroundColor=0x303344;
-			_view3d2.antiAlias=4;
-			_view3d2.width=150;
-			_view3d2.height=150;
-			addChild(_view3d2);
-				
-			// cubes
-			var cubeGeometry:CubeGeometry = new CubeGeometry(200,200,200, 10, 10, 10);
-			var cubeMaterial:ColorMaterial = new ColorMaterial( 0x535564 );
-			//cubeMaterial.lightPicker = lightPicker;
-			var mesh:Mesh = new Mesh(cubeGeometry, cubeMaterial);
-			mesh.showBounds=true;
-			mesh.bounds.boundingRenderable.color = 0x449ebe;
-			_view3d2.scene.addChild(mesh);
-			
-			var lens:OrthographicLens = new OrthographicLens();
-			_camera2 = new Camera3D(lens);
-			_camera2.lens
-			_view3d2.camera = _camera2;
-			//setup controller to be used on the camera
-			_cameraController2 = new HoverController(_camera2, mesh, 180,60, 800);
-			_cameraController2.maxTiltAngle=45;
-			_cameraController2.minTiltAngle=25;
-			
-			//setup camera controller
-			_view3d2.addEventListener(MouseEvent.MOUSE_DOWN,MOUSE_DOWN_view3d2);
+			_smallView=new WorkSpace3D_SmallView();
+			_smallView.width=150;
+			_smallView.height=150;
+			_smallView.x = unscaledWidth-250;
+			_smallView.y = 100 ;
+			addChild(_smallView);
 
-			
 		}
 		
-	
-		public function ShowCenter3D():void
-		{
-			
-		}
+
 		
 		private function OnFrameEnter(e:Event):void
 		{
@@ -283,116 +184,87 @@ package zszh_WorkSpace3D
 				_view3d.height = unscaledHeight ;
 			}
 			
-			if(_view3d2&&_view3d)
-			{
-				_view3d2.x = unscaledWidth-250;
-				_view3d2.y = 100 ;
-			}
-			
-			
 			if(_view3d.stage3DProxy)
 			{
 				_view3d.render();
 				_pointLight.position= _view3d.camera.position;
- 
 				_directionLight.direction = _view3d.camera.forwardVector;
 			}
 			
-			if(_view3d2.stage3DProxy)
-			{
-				_view3d2.render();
+			
+			if (_hoverController&&_smallView._cameraMove) {
+				
+				_hoverController.panAngle = 	_smallView._cameraController.panAngle;
+				_hoverController.tiltAngle =   _smallView._cameraController.tiltAngle;
 			}
 			
-			if (_cameraMove) {
-				_cameraController2.panAngle = (mouseX - lastMouseX) + lastPanAngle;
-				_cameraController2.tiltAngle = (mouseY - lastMouseY) + lastTiltAngle;
+			if (fpsMove&&_fpsController) {
+				_fpsController.panAngle = 0.3*(stage.mouseX - lastMouseX) + lastPanAngle;
+				_fpsController.tiltAngle = 0.3*(stage.mouseY - lastMouseY) + lastTiltAngle;
 				
-				_cameraController.panAngle = 	_cameraController2.panAngle;
-				_cameraController.tiltAngle =   _cameraController2.tiltAngle;
+			}
+			
+			
+			if(_fpsController)
+			{
+				if (walkSpeed || walkAcceleration) {
+					walkSpeed = (walkSpeed + walkAcceleration)*drag;
+					if (Math.abs(walkSpeed) < 0.01)
+						walkSpeed = 0;
+					_fpsController.incrementWalk(walkSpeed);
+				}
+				
+				if (strafeSpeed || strafeAcceleration) {
+					strafeSpeed = (strafeSpeed + strafeAcceleration)*drag;
+					if (Math.abs(strafeSpeed) < 0.01)
+						strafeSpeed = 0;
+					_fpsController.incrementStrafe(strafeSpeed);
+				}
 			}
 		}
 		
 		
 		//-----------------mouse event---------------------------------------------
-		/**
-		 * _view3d listener for mouse interaction
-		 */
-		//左键
-		private var _bMDown_view3d:Boolean=false;
-		private var _MDownPos:Point=new Point(0,0);
-		private var _MDownCameraPos:Point=new Point(0,0);
-		
-		private function MOUSE_DOWN_view3d2(ev:MouseEvent) : void
-		{
-			_bMDown_view3d=true;
-			_MDownPos.x=ev.localX;
-			_MDownPos.y=ev.localY;
-			
-			_MDownCameraPos.x=_view3d.camera.x;
-			_MDownCameraPos.y=_view3d.camera.z;
-			
-			lastPanAngle = _cameraController.panAngle;
-			lastTiltAngle = _cameraController.tiltAngle;
-			lastMouseX = mouseX;
-			lastMouseY = mouseY;
-			_cameraMove = true;
-			addEventListener(Event.MOUSE_LEAVE, onStageMouseLeave);
-			addEventListener(MouseEvent.MOUSE_OUT,MOUSE_UP_view3d2);
-			addEventListener(MouseEvent.MOUSE_UP,MOUSE_UP_view3d2);
-			
-		}
-		private function MOUSE_UP_view3d2(ev:MouseEvent) : void
-		{
-			_bMDown_view3d=false;			
-			_cameraMove = false;
-			removeEventListener(MouseEvent.MOUSE_OUT,MOUSE_UP_view3d2);
-			removeEventListener(MouseEvent.MOUSE_UP,MOUSE_UP_view3d2);
-			removeEventListener(Event.MOUSE_LEAVE, onStageMouseLeave);
-		}
-		
-		private function onStageMouseLeave(event:Event):void
-		{
-			_cameraMove = false;
-			removeEventListener(MouseEvent.MOUSE_OUT,MOUSE_UP_view3d2);
-			removeEventListener(MouseEvent.MOUSE_UP,MOUSE_UP_view3d2);
-			removeEventListener(Event.MOUSE_LEAVE, onStageMouseLeave);
-		}
-		
 		//左键
 		private var _bMouseDown:Boolean=false;
 		private var _bFirstIn:Boolean=true;
 		private var _MouseDownPos:Vector3D=new Vector3D;
 		
-		private var _bMidMouseDown:Boolean=false;
-		
-		private var _MMDownPos:Point=new Point(0,0);
-		private var _MMDownCameraPos:Point=new Point(0,0);
+
+		//fpsControl
+		//rotation variables
+		private var fpsMove:Boolean = false;
+		private var lastPanAngle:Number;
+		private var lastTiltAngle:Number;
+		private var lastMouseX:Number;
+		private var lastMouseY:Number;
 		
 		private function MOUSE_DOWN_view3d(event:MouseEvent):void
 		{
-			_bMouseDown=true;
-			gCurrentObj3D=null;
-			_bFirstIn=true;
+			if(_fpsController)
+			{
+				fpsMove = true;
+				lastPanAngle = _fpsController.panAngle;
+				lastTiltAngle = _fpsController.tiltAngle;
+				lastMouseX = stage.mouseX;
+				lastMouseY = stage.mouseY;
+				stage.addEventListener(Event.MOUSE_LEAVE, onStageMouseLeave);
+				_view3d.addEventListener(MouseEvent.MOUSE_OUT,MOUSE_UP_view3d);
+				_view3d.addEventListener(MouseEvent.MOUSE_UP,MOUSE_UP_view3d);
+			}
 			
-			_view3d.addEventListener(MouseEvent.MOUSE_MOVE,MOUSE_MOVE_view3d);
-			_view3d.addEventListener(MouseEvent.MOUSE_OUT,MOUSE_UP_view3d);
-			_view3d.addEventListener(MouseEvent.MOUSE_UP,MOUSE_UP_view3d);
-
+			else 
+			{
+				_bMouseDown=true;
+				gCurrentObj3D=null;
+				_bFirstIn=true;
+			
+				_view3d.addEventListener(MouseEvent.MOUSE_MOVE,MOUSE_MOVE_view3d);
+				_view3d.addEventListener(MouseEvent.MOUSE_OUT,MOUSE_UP_view3d);
+				_view3d.addEventListener(MouseEvent.MOUSE_UP,MOUSE_UP_view3d);
+			}
 		}
-		
-		//中键
-		
-		private function MIDDLE_MOUSE_DOWN_view3d(event:MouseEvent):void
-		{
-			_bMidMouseDown=true;
-			_MMDownPos.x=event.localX;
-			_MMDownPos.y=event.localY;
-			
-			_view3d.addEventListener(MouseEvent.MOUSE_MOVE,MOUSE_MOVE_view3d);
-			_view3d.addEventListener(MouseEvent.MOUSE_OUT,MOUSE_UP_view3d);
-			_view3d.addEventListener(MouseEvent.MIDDLE_MOUSE_UP,MOUSE_UP_view3d);
-			
-		}
+	
 		
 		private function MOUSE_MOVE_view3d(event:MouseEvent) : void
 		{
@@ -484,37 +356,76 @@ package zszh_WorkSpace3D
 		
 		private function MOUSE_UP_view3d(event:MouseEvent):void
 		{
-			_bMouseDown=false;
-			_bMidMouseDown=false;
 			
-			_view3d.removeEventListener(MouseEvent.MOUSE_MOVE,MOUSE_MOVE_view3d);
-			_view3d.removeEventListener(MouseEvent.MOUSE_OUT,MOUSE_UP_view3d);
-			_view3d.removeEventListener(MouseEvent.MIDDLE_MOUSE_UP,MOUSE_UP_view3d);
-			_view3d.removeEventListener(MouseEvent.MOUSE_UP,MOUSE_UP_view3d);
+			if(_fpsController)
+			{
+				fpsMove = false;
+				stage.removeEventListener(Event.MOUSE_LEAVE, onStageMouseLeave);
+			}
+			else 
+			{
+				_bMouseDown=false;
+				_bMidMouseDown=false;
+			
+				_view3d.removeEventListener(MouseEvent.MOUSE_MOVE,MOUSE_MOVE_view3d);
+				_view3d.removeEventListener(MouseEvent.MOUSE_OUT,MOUSE_UP_view3d);
+				_view3d.removeEventListener(MouseEvent.MIDDLE_MOUSE_UP,MOUSE_UP_view3d);
+				_view3d.removeEventListener(MouseEvent.MOUSE_UP,MOUSE_UP_view3d);
+			}
+		}
+
+		private function onStageMouseLeave(event:Event):void
+		{
+			fpsMove = false;
+			stage.removeEventListener(Event.MOUSE_LEAVE, onStageMouseLeave);
 		}
 		
-		
-	
+		//中键
+		private var _bMidMouseDown:Boolean=false;
+		private var _MMDownPos:Point=new Point(0,0);
+		private var _MMDownCameraPos:Point=new Point(0,0);
+		private function MIDDLE_MOUSE_DOWN_view3d(event:MouseEvent):void
+		{
+			if(!_hoverController)
+				return;
 			
+			_bMidMouseDown=true;
+			_MMDownPos.x=event.localX;
+			_MMDownPos.y=event.localY;
+			
+			_view3d.addEventListener(MouseEvent.MOUSE_MOVE,MOUSE_MOVE_view3d);
+			_view3d.addEventListener(MouseEvent.MOUSE_OUT,MOUSE_UP_view3d);
+			_view3d.addEventListener(MouseEvent.MIDDLE_MOUSE_UP,MOUSE_UP_view3d);
+			
+		}
+		//滚轮
 		private function MOUSE_WHEEL_view3d(ev:MouseEvent) : void
 		{
-			if(ev.delta<0&&_cameraController.distance<1200)
+			if(!_hoverController)
+				return;
+			
+			if(ev.delta<0&&_hoverController.distance<1200)
 			{
-				_cameraController.distance+=20;
+				_hoverController.distance+=20;
 			}
-			else if(_cameraController.distance>500)
+			else if(_hoverController.distance>500)
 			{
-				_cameraController.distance-=20;
+				_hoverController.distance-=20;
 			}				
 		}
 		
+		
+		
+		
+		
+		
 		//----------------D&D-------------------
+		private static var currentMesh:Mesh=null;
+		
 		private function OnDragEnter(event:DragEvent):void
 		{
 			DragManager.acceptDragDrop(event.target as UIComponent);
 		}
-		
-		private static var currentMesh:Mesh=null;
 		
 		private function OnDragDrop(event:DragEvent):void
 		{
@@ -555,6 +466,150 @@ package zszh_WorkSpace3D
 		{
 			currentMesh=mesh;
 		}
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		//--------punblic functions------------------------------------------
+		
+		
+		
+		public function ShowCenter3D():void
+		{
+			
+		}
+		
+		public function ClearRoom():void
+		{
+			for(var i:int=_roomContainer3D.numChildren-1;i>=0;i--)
+				_roomContainer3D.removeChildAt(i);
+			
+		}
+		public function AddRoom(room:Object2D_Room):void
+		{
+			var room3d:Room_3D=new Room_3D(room,_lightPicker);
+			_roomContainer3D.addChild(room3d);
+		}
+		
+		public function ClearWallInside():void
+		{
+			for(var i:int=_wallInsideContainer3D.numChildren-1;i>=0;i--)
+				_wallInsideContainer3D.removeChildAt(i);
+			
+		}
+		public function AddWallInside(pos1:Vector.<Number>,wallName:String):void
+		{
+			var wallInside:WallInside_3D=new WallInside_3D(pos1,_lightPicker);
+			wallInside.name=wallName;
+			_wallInsideContainer3D.addChild(wallInside);
+		}
+		
+		
+		public function ClearModels():void
+		{
+			for(var i:int=_modelsContainer3D.numChildren-1;i>=0;i--)
+				_modelsContainer3D.removeChildAt(i);
+			
+			//AssetLibrary.removeAllAssets();
+			
+		}
+		
+		public function AddModels(model2d:Object2D_Model,room:Object2D_Room):void
+		{	
+			var model3d:Model_3D=new Model_3D(model2d,room,_lightPicker);
+			_modelsContainer3D.addChild(model3d);
+		}
+		
+		
+		//camera controller
+		public function FPSVisit():void
+		{
+			
+			
+			_fpsController=new FirstPersonController(_camera,180, 0, -80, 80);
+			_camera.position=_cameraCenter.position;
+			_camera.y=270;
+			//_fpsController.panAngle=_hoverController.panAngle;
+			//_fpsController.tiltAngle=_hoverController.tiltAngle;
+			_hoverController=null;
+			stage.addEventListener(KeyboardEvent.KEY_DOWN, onKeyDown);
+			stage.addEventListener(KeyboardEvent.KEY_UP, onKeyUp);
+		}
+		
+		
+		public function NormalVisit():void
+		{
+			
+			_hoverController = new HoverController(_camera,_cameraCenter, 180,60, 800);
+			_hoverController.maxTiltAngle=45;
+			_hoverController.minTiltAngle=25;
+			_fpsController=null;
+			stage.removeEventListener(KeyboardEvent.KEY_DOWN, onKeyDown);
+			stage.removeEventListener(KeyboardEvent.KEY_UP, onKeyUp);
+		}
+		
+		//movement variables
+		private var drag:Number = 0.5;
+		private var walkIncrement:Number = 2;
+		private var strafeIncrement:Number = 2;
+		private var walkSpeed:Number = 0;
+		private var strafeSpeed:Number = 0;
+		private var walkAcceleration:Number = 0;
+		private var strafeAcceleration:Number = 0;
+		
+		/**
+		 * Key down listener for camera control
+		 */
+		private function onKeyDown(event:KeyboardEvent):void
+		{
+			switch (event.keyCode) {
+				case Keyboard.UP:
+				case Keyboard.W:
+					walkAcceleration = walkIncrement;
+					break;
+				case Keyboard.DOWN:
+				case Keyboard.S:
+					walkAcceleration = -walkIncrement;
+					break;
+				case Keyboard.LEFT:
+				case Keyboard.A:
+					strafeAcceleration = -strafeIncrement;
+					break;
+				case Keyboard.RIGHT:
+				case Keyboard.D:
+					strafeAcceleration = strafeIncrement;
+					break;
+			}
+		}
+		
+		/**
+		 * Key up listener for camera control
+		 */
+		private function onKeyUp(event:KeyboardEvent):void
+		{
+			switch (event.keyCode) {
+				case Keyboard.UP:
+				case Keyboard.W:
+				case Keyboard.DOWN:
+				case Keyboard.S:
+					walkAcceleration = 0;
+					break;
+				case Keyboard.LEFT:
+				case Keyboard.A:
+				case Keyboard.RIGHT:
+				case Keyboard.D:
+					strafeAcceleration = 0;
+					break;
+			}
+		}
+		
 		
 	}
 }

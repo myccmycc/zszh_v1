@@ -14,64 +14,86 @@ package zszh_WorkSpace2D
 	
 	import zszh_WorkSpace2D.PopupMenu_Room2D_Wall;
 	
-	public class Room_2DWindows extends Object2D_Base
+	public class Room_2DWindow extends Object2D_Base
 	{
 		private var _popupWindowMenu:PopupMenu_Room2D_Wall;
-		
-		
-		private var _P0:Point;
-		private var _P1:Point;
 		
 		private var _lineColor:uint;
 		private var _lineColorSelected:uint;
 		private var _windowColor:uint;
 		
-		public function Room_2DWindows(p0:Point,p1:Point)
+		private var _thisWall:Room_2DWall;
+		
+		public function Room_2DWindow(p0:Point,p1:Point)
 		{
 			super();
-			_P0=p0;
-			_P1=p1;
 			
 			_lineColor=0xff0000;
 			_lineColorSelected=0x00ff00;
 			_windowColor=0xffff00;
 			
 			addEventListener(FlexEvent.CREATION_COMPLETE,OnCreation_Complete);
-			addEventListener(MouseEvent.RIGHT_CLICK,WallCLICK);
-			addEventListener(MouseEvent.MOUSE_OVER,WallMouseOver);
-			addEventListener(MouseEvent.MOUSE_OUT,WallMouseOut);
-			addEventListener(MouseEvent.MOUSE_DOWN,WallMouseDown);
+			addEventListener(Event.ADDED,OnAdd);
+			addEventListener(MouseEvent.RIGHT_CLICK,MouseCLICK);
+			addEventListener(MouseEvent.MOUSE_OVER,MouseOver);
+			addEventListener(MouseEvent.MOUSE_OUT,MouseOut);
+			addEventListener(MouseEvent.MOUSE_DOWN,MouseDown);
 		}
-		
-		
- 
-		
-
+	
+		private function OnAdd(event:Event):void
+		{
+			_thisWall=(this.parent as Room_2DWall);
+		}
 		private function OnCreation_Complete(e:FlexEvent):void
 		{
-			Update();
+			Draw();
 		}
-		private function Update():void
+		override public function Draw():void
 		{
+			if(!_thisWall)
+				_thisWall=(this.parent as Room_2DWall);
+			var p:Point=new Point(this.x,this.y);
+			var pos:Point=Object2D_Utility.FindShortestPoint(_thisWall._wallVertex1,p);
+			
+
+			
+			this.x=pos.x;
+			this.y=pos.y;
+			
 			graphics.clear();
 			graphics.lineStyle(1,_lineColor);//白线
 			graphics.beginFill(_windowColor,0.8);
-			graphics.moveTo(_P0.x,_P0.y);
-			graphics.lineTo(_P1.x,_P1.y);
+			graphics.drawRect(-10,-50,20,100);
 			graphics.endFill();
+			
+			var p1:Point=new Point(_thisWall._wallVertex1[0],_thisWall._wallVertex1[1]);
+			var p2:Point=new Point(_thisWall._wallVertex1[2],_thisWall._wallVertex1[3]);
+			var p2p1:Point=new Point(p2.x-p1.x,p2.y-p1.y);
+			
+			var pp:Point=new Point(0,100);
+			
+			
+			//1求夹角，P1P2_Normal和 MouseMove。
+			var d:Number=p2p1.x*pp.x+p2p1.y*pp.y;
+			var d1:Number=Math.sqrt(p2p1.x*p2p1.x+p2p1.y*p2p1.y) * Math.sqrt(pp.x*pp.x+pp.y*pp.y);
+			var arg:Number= Math.acos(d/d1);
+			var ang:Number=arg*180/Math.PI;
+			
+			this.rotation=_thisWall._rotation-90;
+			
 		}
 		
 		
 		//----------------wall mouse move event ---------------------------------------
 		
-		private function WallMouseOver(e:MouseEvent):void
+		private function MouseOver(e:MouseEvent):void
 		{
 			if(!_selected)
 				return;
 			
 			e.stopPropagation();
 		}
-		private function WallMouseOut(e:MouseEvent):void
+		private function MouseOut(e:MouseEvent):void
 		{
 			if(!_selected)
 				return;
@@ -79,7 +101,7 @@ package zszh_WorkSpace2D
 			e.stopPropagation();
 		}
 		
-		private function WallCLICK(e:MouseEvent):void
+		private function MouseCLICK(e:MouseEvent):void
 		{
 			if(!_selected)
 				return;
@@ -104,7 +126,7 @@ package zszh_WorkSpace2D
 		private var bStart:Boolean=false;
 		
 
-		private function WallMouseDown(e:MouseEvent):void
+		private function MouseDown(e:MouseEvent):void
 		{
 			if(!_selected)
 				return;
@@ -114,20 +136,20 @@ package zszh_WorkSpace2D
 			startPoint.y=this.mouseY;
 	
 			
-			this.stage.addEventListener(MouseEvent.MOUSE_MOVE,WallMouseMove);
-			this.stage.addEventListener(MouseEvent.MOUSE_UP,WallMouseUp);
+			this.stage.addEventListener(MouseEvent.MOUSE_MOVE,StageMouseMove);
+			this.stage.addEventListener(MouseEvent.MOUSE_UP,StageMouseUp);
 			e.stopPropagation();
 		}
 		
-		private function WallMouseUp(e:MouseEvent):void
+		private function StageMouseUp(e:MouseEvent):void
 		{
 		  	SetSelected(true);
 			bStart=false;
 
-			this.stage.removeEventListener(MouseEvent.MOUSE_MOVE,WallMouseMove);
-			this.stage.removeEventListener(MouseEvent.MOUSE_UP,WallMouseUp);
+			this.stage.removeEventListener(MouseEvent.MOUSE_MOVE,StageMouseMove);
+			this.stage.removeEventListener(MouseEvent.MOUSE_UP,StageMouseUp);
 		}
-		private function WallMouseMove(e:MouseEvent):void
+		private function StageMouseMove(e:MouseEvent):void
 		{
 			if(!_selected)
 				return;

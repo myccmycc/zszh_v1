@@ -20,6 +20,9 @@ package zszh_WorkSpace3D
 	import away3d.materials.lightpickers.StaticLightPicker;
 	import away3d.utils.Cast;
 	
+	import zszh_WorkSpace2D.Object2D_Model;
+	import zszh_WorkSpace2D.Object2D_Room;
+	
 	import zszh_WorkSpace3D.WorkSpace3D;
 	
 	public class Model_3D extends ObjectContainer3D
@@ -27,6 +30,7 @@ package zszh_WorkSpace3D
 		public var _resPath:String;
 		public var _modelName:String;
 		
+		private var _rotation:int;
 		public var _loaderModel:Loader3D;
 		//WorkSpace3D _lightPicker
 		private var _lightPicker:StaticLightPicker;
@@ -39,13 +43,21 @@ package zszh_WorkSpace3D
 		private var _speculaLoader:Loader;
 		private var _normalLoader:Loader;
 		
-		public function Model_3D(path:String,name:String,pos:Vector3D,lightPick:StaticLightPicker)
+		public function Model_3D(model2d:Object2D_Model,room2d:Object2D_Room,lightPick:StaticLightPicker)
 		{
 			super();
 			
-			_resPath=path;
-			_modelName=name;
+			var pos:Vector3D=new Vector3D();
+			pos.x=room2d.x+model2d.x-3200;
+			pos.y=0;
+			pos.z=-room2d.y-model2d.y+3200;
+		
+			_resPath=model2d._resourcePath;
+			_modelName=model2d._modelName;
 			position=pos;
+			_rotation=model2d._rotation;
+			
+			yaw(_rotation);
 			_lightPicker=lightPick;
 			//Loader3D to load the asset
 			Loader3D.enableParser(AWD2Parser);

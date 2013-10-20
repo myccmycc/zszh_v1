@@ -13,6 +13,7 @@ package zszh_WorkSpace3D
 	import away3d.core.base.Geometry;
 	import away3d.core.base.SubGeometry;
 	import away3d.core.math.MathConsts;
+	import away3d.core.pick.PickingColliderType;
 	import away3d.debug.Trident;
 	import away3d.entities.Mesh;
 	import away3d.events.MouseEvent3D;
@@ -24,13 +25,13 @@ package zszh_WorkSpace3D
 	import away3d.materials.TextureMultiPassMaterial;
 	import away3d.materials.lightpickers.StaticLightPicker;
 	import away3d.primitives.PlaneGeometry;
-	
-	import away3d.core.pick.PickingColliderType;
 	import away3d.utils.Cast;
 	
-	import zszh_WorkSpace2D.Room_2DFloor;
-	import zszh_WorkSpace3D.WorkSpace3D;
+	import zszh_WorkSpace2D.Object2D_Room;
 	import zszh_WorkSpace2D.Object2D_Utility;
+	import zszh_WorkSpace2D.Room_2DFloor;
+	
+	import zszh_WorkSpace3D.WorkSpace3D;
 	
 	public class Room_3D extends ObjectContainer3D
 	{
@@ -68,18 +69,37 @@ package zszh_WorkSpace3D
 		private var _wallHeight:int;
 		private var _wallWidth:int;
 		
-		public function Room_3D(_pos1:Vector.<Number>,_pos2:Vector.<Number>,_pos3:Vector.<Number>,floorTex:String,lightPicker:StaticLightPicker)
+		public function Room_3D(room:Object2D_Room,lightPicker:StaticLightPicker)
 		{
 			super();
-			_pos1Vec=_pos1;
-			_pos2Vec=_pos2;
-			_pos3Vec=_pos3;
 			
+			var vertex_old:Vector.<Number>= room._vertexVec1;
+			var vertex_old2:Vector.<Number>= room._vertexVec2;
+			var vertex_old3:Vector.<Number>= room._vertexVec3;
+			_pos1Vec=new Vector.<Number>;
+			_pos2Vec=new Vector.<Number>;
+			_pos3Vec=new Vector.<Number>;
+			
+			for(var j:int=0;j<vertex_old.length;j+=2)
+			{
+				_pos1Vec.push(room.x+vertex_old[j]-3200);
+				_pos1Vec.push(-room.y+vertex_old[j+1]+3200);
+					
+				_pos2Vec.push(room.x+vertex_old2[j]-3200);
+				_pos2Vec.push(-room.y+vertex_old2[j+1]+3200);
+					
+				_pos3Vec.push(room.x+vertex_old3[j]-3200);
+				_pos3Vec.push(-room.y+vertex_old3[j+1]+3200);
+			}
+				
 			_wallHeight=270;
 			_wallWidth=20;
 			_lightPicker=lightPicker;
 		
-			_floorTex=floorTex;
+			_floorTex=room._floor._floorTex;
+			
+			name=room.name;
+			
 			_floorTexLoader = new Loader();
 			_floorTexLoader.contentLoaderInfo.addEventListener(Event.COMPLETE,onComplete);
 			_floorTexLoader.load(new URLRequest(_floorTex));

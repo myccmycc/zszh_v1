@@ -9,6 +9,9 @@ package zszh_Core
 	
 	import zszh_Core.DisposeUtil;
 	
+	import zszh_WorkSpace2D.Object2D_Room;
+	import zszh_WorkSpace2D.Room_2DFloor;
+	
 	public class CommandManager extends EventDispatcher
 	{
 		private static var g_Created:Boolean = false; 
@@ -68,10 +71,11 @@ package zszh_Core
 		} 
 		
 		private function AppendCommand(command:ICommand):void 
-			
 		{ 
 			//有新命令添加时清空RedoList， 
 			DisposeUtil.Dispose(_RedoList); 
+			while(_UndoList.length>=20)
+				_UndoList.removeItemAt(0);
 			_UndoList.addItem(command);
 		} 
 		
@@ -100,5 +104,24 @@ package zszh_Core
 			var command:ICommand = new Command_Move(target, oldValue, newValue);
 			ExecuteCommand(command);
 		}
+		
+		public function ChangeRoomVertex(target:Object2D_Room, oldValue:Vector.<Number>, newValue:Vector.<Number>):void
+		{
+			var command:ICommand = new Command_ChangeRoomVertex(target, oldValue, newValue);
+			ExecuteCommand(command);
+		}
+		
+		public function MoveRoomVertex(target:Object2D_Room, oldValue:Vector.<Number>, newValue:Vector.<Number>):void
+		{
+			var command:ICommand = new Command_MoveRoomVertex(target, oldValue, newValue);
+			ExecuteCommand(command);
+		}
+		
+		public function ChangeRoomFloor(target:Room_2DFloor, oldValue:String, newValue:String):void
+		{
+			var command:ICommand = new Command_ChangeRoomFloor(target, oldValue, newValue);
+			ExecuteCommand(command);
+		}
+		
 	}
 }

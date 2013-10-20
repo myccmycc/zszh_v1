@@ -70,14 +70,14 @@
 		<s:Move id="myButton5Out" target="{myButton5}" xFrom="0" yFrom="0"  xTo="{myButton5.x}" yTo="{myButton5.y}"/>
 		
 	</fx:Declarations>
-	<s:Button id="myButton1" x="-100" y="-50"  label="拆除" width="80" height="25" click="ShowScale()" skinClass="zszh_WorkSpace2D.Skin_PopupMenuBt" />
+	<s:Button id="myButton1" x="-100" y="-50"  label="属性" width="80" height="25" click="ShowScale()" skinClass="zszh_WorkSpace2D.Skin_PopupMenuBt" />
 	
-	<s:Button id="myButton2" x="-120" y="-10"  label="拆分墙" width="80" height="25" click="ShowScale()" skinClass="zszh_WorkSpace2D.Skin_PopupMenuBt" />
+	<s:Button id="myButton2" x="-120" y="-10"  label="收藏" width="80" height="25" click="ShowScale()" skinClass="zszh_WorkSpace2D.Skin_PopupMenuBt" />
 	
-	<s:Button id="myButton3" x="20" y="-50"  label="墙去段" width="80" height="25" click="ShowScale()" skinClass="zszh_WorkSpace2D.Skin_PopupMenuBt" />
+	<s:Button id="myButton3" x="20" y="-50"  label="复制" width="80" height="25" click="ShowScale()" skinClass="zszh_WorkSpace2D.Skin_PopupMenuBt" />
 	
-	<s:Button id="myButton4" x="40" y="-10"  label="装门窗" width="80" height="25" click="ShowScale()" skinClass="zszh_WorkSpace2D.Skin_PopupMenuBt" />
+	<s:Button id="myButton4" x="40" y="-10"  label="删除" width="80" height="25" click="ShowScale()" skinClass="zszh_WorkSpace2D.Skin_PopupMenuBt" />
 	
-	<s:Button id="myButton5" x="-40"  y="30"  label="属性" width="80" height="25" click="ShowScale()" skinClass="zszh_WorkSpace2D.Skin_PopupMenuBt" />
+	<s:Button id="myButton5" x="-40"  y="30"  label="帮助" width="80" height="25" click="ShowScale()" skinClass="zszh_WorkSpace2D.Skin_PopupMenuBt" />
 	
 </s:SkinnableContainer>

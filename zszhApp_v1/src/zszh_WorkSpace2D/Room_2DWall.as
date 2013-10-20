@@ -7,9 +7,11 @@ package zszh_WorkSpace2D
 	import flash.events.MouseEvent;
 	import flash.geom.Point;
 	
-	import mx.core.UIComponent;
+	import mx.events.FlexEvent;
 	import mx.managers.CursorManager;
 	import mx.managers.PopUpManager;
+	
+	import zszh_Core.CommandManager;
 	
 	import zszh_WorkSpace2D.PopupMenu_Room2D_Wall;
 	
@@ -20,91 +22,74 @@ package zszh_WorkSpace2D
 		private var _wallColor:uint;
 		private var _wallColorSelected:uint;
 		
+		private var _bHaveHole:Boolean;
+		public  var _wallVertex1:Vector.<Number>;
 		private var _wallPos:Vector.<Number>;
 		
-		public  var _postionInRoom:int;
-		public  var _rotation:Number;
+		public   var _postionInRoom:int;
+		public   var _rotation:Number;
+		private  var _thisRoom:Object2D_Room;
 		
 		[Bindable]
 		[Embed(source="../embeds/rooms/cursor_wall.png")]
-		public var _cursorWall:Class;
+		private var _cursorWall:Class;
 		private var _cursorSprite:Sprite;
-		
 		
 		public function Room_2DWall()
 		{
 			super();
 		
+			_bHaveHole=false;
 			_lineColor=0xffffff;
 			_wallColor=0x7c7e89;
 			_wallColorSelected=0xff6666;
 			_wallPos=new Vector.<Number>;
-			_selected=true;
+			_wallVertex1=new Vector.<Number>;
 			
 			_cursorSprite=new Sprite();
 			var img:Bitmap=new _cursorWall();
 			_cursorSprite.addChild(img);
 			img.x=-img.width/2;
 			img.y=-img.height/2;
-			
 			addChild(_cursorSprite);
 			_cursorSprite.visible=false;
 			
-			addEventListener(MouseEvent.RIGHT_CLICK,WallCLICK);
-			addEventListener(MouseEvent.MOUSE_OVER,WallMouseOver);
-			addEventListener(MouseEvent.MOUSE_OUT,WallMouseOut);
-			addEventListener(MouseEvent.MOUSE_DOWN,WallMouseDown);
-		}
-		
-		public function UpdateVertex(p1x:Number,p1y:Number,p2x:Number,p2y:Number,p3x:Number,p3y:Number,p4x:Number,p4y:Number):void
-		{
-
-			_wallPos[0]=p1x;_wallPos[1]=p1y;
-			_wallPos[2]=p2x;_wallPos[3]=p2y;
-			_wallPos[4]=p3x;_wallPos[5]=p3y;
-			_wallPos[6]=p4x;_wallPos[7]=p4y;
+			addEventListener(Event.ADDED,OnAdd);
+			addEventListener(MouseEvent.RIGHT_CLICK,RightMouseClick);
+			addEventListener(MouseEvent.MOUSE_OVER,MouseOver);
+			addEventListener(MouseEvent.MOUSE_OUT,MouseOut);
+			addEventListener(MouseEvent.MOUSE_DOWN,LeftMouseDown);
 			
-			Update();
 		}
 		
- 
-		
-	
-		private function ShowCursorCorner(postion:Point,rotation:Number):void
+		private function OnAdd(event:Event):void
 		{
-			CursorManager.hideCursor();
+			if(parent==null)
+				trace("error: Room_2DWall not in room! ")
+			_thisRoom=(parent as Object2D_Room);
+		}
+		override public function Draw():void
+		{
+			var room_2d:Object2D_Room=this.parent as Object2D_Room;
+			var len:int=room_2d._vertexVec1.length;
 			
-			_cursorSprite.rotation=rotation+90;
-			_cursorSprite.visible=true;
-			_cursorSprite.x=postion.x;
-			_cursorSprite.y=postion.y;
-		}
-		
-		private function HideCursorCorner():void
-		{
-			CursorManager.showCursor();
-			_cursorSprite.visible=false;
-		}
-		
-		
-		private function OnDeleteWall(e:Event):void
-		{
-			trace("OnDeleteWall");
-			this.visible=false;
-		}
-		
-		private function OnSplitWall(e:Event):void
-		{
-			trace("OnSplitWall");
-		}
-		
-		private function OnHoleWall(e:Event):void
-		{
-			trace("OnHoleWall");
-		}
-		
-		private function Update():void
-		{
+			_wallPos=new Vector.<Number>;
+			_wallVertex1=new Vector.<Number>;
+			
+			_wallVertex1[0]=room_2d._vertexVec1[(_postionInRoom+2)%len];
+			_wallVertex1[1]=room_2d._vertexVec1[(_postionInRoom+3)%len];
+			_wallVertex1[2]=room_2d._vertexVec1[(_postionInRoom+4)%len];
+			_wallVertex1[3]=room_2d._vertexVec1[(_postionInRoom+5)%len];
+			
+			_wallPos[0]=room_2d._vertexVec2[_postionInRoom];
+			_wallPos[1]=room_2d._vertexVec2[_postionInRoom+1];
+			_wallPos[2]=room_2d._vertexVec2[(_postionInRoom+2)%len];
+			_wallPos[3]=room_2d._vertexVec2[(_postionInRoom+3)%len];
+			_wallPos[4]=room_2d._vertexVec3[_postionInRoom];
+			_wallPos[5]=room_2d._vertexVec3[_postionInRoom+1];
+			_wallPos[6]=room_2d._vertexVec3[(_postionInRoom+2)%len];
+			_wallPos[7]=room_2d._vertexVec3[(_postionInRoom+3)%len];
+			
 			graphics.clear();
 			graphics.lineStyle(1,_lineColor);//白线
 			
@@ -127,19 +112,67 @@ package zszh_WorkSpace2D
 			
 			var p1:Point=new Point(_wallPos[2]-_wallPos[0],_wallPos[3]-_wallPos[1]);
 			var p2:Point=new Point(1,0);
-			var d:Number=p1.x*p2.x+p1.y*p2.y;
-			var d1:Number=Math.sqrt(p1.x*p1.x+p1.y*p1.y) * Math.sqrt(p2.x*p2.x+p2.y*p2.y);
-			_rotation= Math.acos(d/d1)/Math.PI *180;
 			
-			var sind:Number=p1.x*p2.y-p1.y*p2.x;
-			if(sind<0)
-				_rotation=360-_rotation;
+			_rotation=Object2D_Utility.GetAngle(p1,p2);
+			
+			for(var i:int=0;i<numChildren;i++)
+			{
+				if(getChildAt(i) is Object2D_Base)
+					(getChildAt(i) as Object2D_Base).Draw();
+			}
+		}
+
+		//--------popup menu function------------------------------------
+		
+		private function OnSplitWall(e:Event):void
+		{
+			trace("OnSplitWall");
+			
+			var vecLen:int=_thisRoom._vertexVec1.length;
+			var pos:int=_postionInRoom;
+			var P0:Point=new Point(_thisRoom._vertexVec1[(pos+2)%vecLen],_thisRoom._vertexVec1[(pos+3)%vecLen]);
+			var P1:Point=new Point(_thisRoom._vertexVec1[(pos+4)%vecLen],_thisRoom._vertexVec1[(pos+5)%vecLen]);
+			
+			if(P0.x==P1.x&&P0.y==P1.y)
+				return;
+			
+			var PMid:Point=new Point((P1.x-P0.x)/2+P0.x,(P1.y-P0.y)/2+P0.y);
+			
+			var newVectex:Vector.<Number>=new Vector.<Number>;
+			for(var i:int=0;i<vecLen;i++)
+			{
+				if(i==(pos+4)%vecLen)
+				{
+					newVectex.push(PMid.x);
+					newVectex.push(PMid.y);
+					newVectex.push(PMid.x);
+					newVectex.push(PMid.y)
+				}
+				
+				newVectex.push(_thisRoom._vertexVec1[i]);
+			}
+			
+			CommandManager.Instance.ChangeRoomVertex(_thisRoom,_thisRoom._vertexVec1,newVectex);
+			_thisRoom._bSplit=true;
+		}
+		
+		private function OnHoleWall(e:Event):void
+		{
+			trace("OnHoleWall");
+			_bHaveHole=true;
+		}
+		
+		private function OnDeleteWall(e:Event):void
+		{
+			trace("OnDeleteWall");
+			this.visible=false;
 		}
 		
 		
-		//----------------wall mouse move event ---------------------------------------
 		
-		private function WallMouseOver(e:MouseEvent):void
+		//----------------mouse event OVER OUT ---------------------------------------
+		
+		private function MouseOver(e:MouseEvent):void
 		{
 			if(!_selected)
 				return;
@@ -147,7 +180,7 @@ package zszh_WorkSpace2D
 			ShowCursorCorner(new Point(this.mouseX,this.mouseY),_rotation);
 			e.stopPropagation();
 		}
-		private function WallMouseOut(e:MouseEvent):void
+		private function MouseOut(e:MouseEvent):void
 		{
 			if(!_selected)
 				return;
@@ -156,7 +189,24 @@ package zszh_WorkSpace2D
 			e.stopPropagation();
 		}
 		
-		private function WallCLICK(e:MouseEvent):void
+		private function ShowCursorCorner(postion:Point,rotation:Number):void
+		{
+			CursorManager.hideCursor();
+			
+			_cursorSprite.rotation=rotation+90;
+			_cursorSprite.visible=true;
+			_cursorSprite.x=postion.x;
+			_cursorSprite.y=postion.y;
+		}
+		
+		private function HideCursorCorner():void
+		{
+			CursorManager.showCursor();
+			_cursorSprite.visible=false;
+		}
+		
+		//----------------mouse event RIGHT MOUSE CLICK ---------------------------------------
+		private function RightMouseClick(e:MouseEvent):void
 		{
 			if(!_selected)
 				return;
@@ -180,102 +230,112 @@ package zszh_WorkSpace2D
 		}
 		
 	
-		private var startPoint:Point=new Point;
-		private var bStart:Boolean=false;
-		
-		override public function Draw():void
-		{}
-
-		private function WallMouseDown(e:MouseEvent):void
+		//----------------mouse event DOWN UP MOVE ---------------------------------------
+		private var lastMousePoint:Point=new Point;
+		private var bLeftMouseDown:Boolean=false;
+		private var lastVectex:Vector.<Number>=new Vector.<Number>;
+		private function LeftMouseDown(e:MouseEvent):void
 		{
+			trace("wall in room:"+_postionInRoom);
 			if(!_selected)
 				return;
 		  
-			bStart=true;
-			startPoint.x=this.mouseX;
-			startPoint.y=this.mouseY;
-	
-			ShowCursorCorner(new Point(this.mouseX,this.mouseY),_rotation);
+			bLeftMouseDown=true;
+			lastMousePoint.x=this.mouseX;
+			lastMousePoint.y=this.mouseY;
 			
-			this.stage.addEventListener(MouseEvent.MOUSE_MOVE,WallMouseMove);
-			this.stage.addEventListener(MouseEvent.MOUSE_UP,WallMouseUp);
+			lastVectex=new Vector.<Number>;
+			
+			var len:int=_thisRoom._vertexVec1.length;
+			for(var i:int=0;i<len;i++)
+			{
+				lastVectex[i]=_thisRoom._vertexVec1[i];
+			}
+			
+			
+			ShowCursorCorner(new Point(mouseX,mouseY),_rotation);
+			if(stage)
+			{
+				stage.addEventListener(MouseEvent.MOUSE_MOVE,MouseMove);
+				stage.addEventListener(MouseEvent.MOUSE_UP,LeftMouseUp);
+			}
 			e.stopPropagation();
 		}
 		
-		private function WallMouseUp(e:MouseEvent):void
-		{
-		  	SetSelected(true);
-			bStart=false;
-			HideCursorCorner();
-			this.stage.removeEventListener(MouseEvent.MOUSE_MOVE,WallMouseMove);
-			this.stage.removeEventListener(MouseEvent.MOUSE_UP,WallMouseUp);
-		}
-		private function WallMouseMove(e:MouseEvent):void
+		private function LeftMouseUp(e:MouseEvent):void
 		{
 			if(!_selected)
 				return;
 			
-			if(!bStart)
+			if(lastVectex.length!=_thisRoom._vertexVec1.length)
+				trace("Error: Wall LeftMouseUp lastVectex.length!=_thisRoom._vertexVec1.length ,can not move !");
+			
+			var isSame:Boolean=true;
+			for(var i:int=0;i< lastVectex.length;i++)
+			{
+				if(lastVectex[i]!=_thisRoom._vertexVec1[i])
+				{
+					isSame=false;
+					break;
+				}
+			}
+			if(!isSame)
+				CommandManager.Instance.MoveRoomVertex(_thisRoom,lastVectex,_thisRoom._vertexVec1);
+			
+			bLeftMouseDown=false;
+			HideCursorCorner();
+			if(stage)
+			{
+				stage.removeEventListener(MouseEvent.MOUSE_MOVE,MouseMove);
+				stage.removeEventListener(MouseEvent.MOUSE_UP,LeftMouseUp);
+			}
+			
+			_thisRoom.CheckVertexData();
+		}
+		private function MouseMove(e:MouseEvent):void
+		{
+			if(!_selected || !bLeftMouseDown)
 				return;
+		
 			ShowCursorCorner(new Point(this.mouseX,this.mouseY),_rotation);
+			
 			if(MoveWall(_postionInRoom))
 			{
-				startPoint.x=this.mouseX;
-				startPoint.y=this.mouseY;
+				lastMousePoint.x=this.mouseX;
+				lastMousePoint.y=this.mouseY;
+				_thisRoom._bSplit=false;//移动过后，拆分标志就为false
 			}
 		}
 		
 		
-		private function MoveWall(i:int):Boolean
+		private function MoveWall(pos:int):Boolean
 		{
-			var thisRoom:Object2D_Room=(this.parent as Object2D_Room);
-			
-			var vecLen:int=thisRoom._vertexVec1.length;
-			
-			var P0:Point=new Point(thisRoom._vertexVec1[(i+0)%vecLen],-thisRoom._vertexVec1[(i+1)%vecLen]);
-			
-			var P1:Point=new Point(thisRoom._vertexVec1[(i+2)%vecLen],-thisRoom._vertexVec1[(i+3)%vecLen]);
-			
-			var P2:Point=new Point(thisRoom._vertexVec1[(i+4)%vecLen],-thisRoom._vertexVec1[(i+5)%vecLen]);
-			
-			var P3:Point=new Point(thisRoom._vertexVec1[(i+6)%vecLen],-thisRoom._vertexVec1[(i+7)%vecLen]);    
+			var vecLen:int=_thisRoom._vertexVec1.length;
+			var P0:Point=new Point(_thisRoom._vertexVec1[(pos+0)%vecLen],-_thisRoom._vertexVec1[(pos+1)%vecLen]);
+			var P1:Point=new Point(_thisRoom._vertexVec1[(pos+2)%vecLen],-_thisRoom._vertexVec1[(pos+3)%vecLen]);
+			var P2:Point=new Point(_thisRoom._vertexVec1[(pos+4)%vecLen],-_thisRoom._vertexVec1[(pos+5)%vecLen]);
+			var P3:Point=new Point(_thisRoom._vertexVec1[(pos+6)%vecLen],-_thisRoom._vertexVec1[(pos+7)%vecLen]);    
 			trace("P0123:"+P0+P1+P2+P3);
 			
-			
 			//1.求鼠标移动的向量
-	
-			var VMouseMove:Point=new Point((int)(this.mouseX-startPoint.x),int(this.mouseY-startPoint.y));
-			trace("VMouseMove:"+VMouseMove);
-			
-			
+			var VMouseMove:Point=new Point((int)(this.mouseX-lastMousePoint.x),int(this.mouseY-lastMousePoint.y));
+
 			//1.求移动的P1P2线段
-			
 			var VP1P2:Point=new Point(P2.x-P1.x,P2.y-P1.y);
-			
 			trace("VP1P2:"+VP1P2);
 			
 			//1.求P1P2线段逆时针方向法线向量
-			
 			var VP1P2_Normal:Point= new Point(-VP1P2.y,VP1P2.x);
-			
 			trace("VP1P2_Normal:"+VP1P2_Normal);
 			
-			
-			
 			//1求夹角，P1P2_Normal和 MouseMove。
-			
 			var d:Number=VP1P2_Normal.x*VMouseMove.x+VP1P2_Normal.y*VMouseMove.y;
-			
 			var d1:Number=Math.sqrt(VP1P2_Normal.x*VP1P2_Normal.x+VP1P2_Normal.y*VP1P2_Normal.y) * Math.sqrt(VMouseMove.x*VMouseMove.x+VMouseMove.y*VMouseMove.y);
-			
 			var VMouseMove_arg:Number= Math.acos(d/d1);
-			
+			var cos:Number=d/d1;
 			
 			trace("mouse_move to normal arg:"+VMouseMove_arg);
-			
 			trace("mouse_move to normal ang:"+VMouseMove_arg*180/Math.PI);
-			
-			
 			
 			//2 P1P2 直线方程  Ax+By+c=0的表达式
 			
@@ -291,7 +351,7 @@ package zszh_WorkSpace2D
 			
 			var aabb:Number=Math.sqrt(A*A+B*B);
 			
-			var dis:Number=Math.sqrt( VMouseMove .x*  VMouseMove .x+  VMouseMove .y*  VMouseMove .y)*Math.cos(VMouseMove_arg);
+			var dis:Number=Math.sqrt( VMouseMove .x*  VMouseMove .x+  VMouseMove .y*  VMouseMove .y)*cos;
 			
 			
 			var s:Number=dis*aabb;
@@ -311,16 +371,16 @@ package zszh_WorkSpace2D
 			if(i1.x!=Number.POSITIVE_INFINITY && i2.x!=Number.POSITIVE_INFINITY)
 			{
 				var vertex:Vector.<Number>=new Vector.<Number>;
-				for(var j:int=0;j<thisRoom._vertexVec1.length;j++)
-					vertex.push(thisRoom._vertexVec1[j]);
+				for(var j:int=0;j<_thisRoom._vertexVec1.length;j++)
+					vertex.push(_thisRoom._vertexVec1[j]);
 				
-				vertex[(i+2)%vecLen]=(int)(i1.x);
+				vertex[(pos+2)%vecLen]=(int)(i1.x);
 				
-				vertex[(i+3)%vecLen]=(int)(-i1.y);
+				vertex[(pos+3)%vecLen]=(int)(-i1.y);
 				
-				vertex[(i+4)%vecLen]=(int)(i2.x);
+				vertex[(pos+4)%vecLen]=(int)(i2.x);
 				
-				vertex[(i+5)%vecLen]=(int)(-i2.y);
+				vertex[(pos+5)%vecLen]=(int)(-i2.y);
 				
 				for(j=0;j<vertex.length;j+=2)
 				{
@@ -329,15 +389,15 @@ package zszh_WorkSpace2D
 						return false;
 				}
 								
-				thisRoom._vertexVec1[(i+2)%vecLen]=(int)(i1.x);
+				_thisRoom._vertexVec1[(pos+2)%vecLen]=(int)(i1.x);
 				
-				thisRoom._vertexVec1[(i+3)%vecLen]=(int)(-i1.y);
+				_thisRoom._vertexVec1[(pos+3)%vecLen]=(int)(-i1.y);
 				
-				thisRoom._vertexVec1[(i+4)%vecLen]=(int)(i2.x);
+				_thisRoom._vertexVec1[(pos+4)%vecLen]=(int)(i2.x);
 				
-				thisRoom._vertexVec1[(i+5)%vecLen]=(int)(-i2.y);
+				_thisRoom._vertexVec1[(pos+5)%vecLen]=(int)(-i2.y);
 				
-				thisRoom.Object2DUpdate();
+				_thisRoom.Object2DUpdate();
 				
 				return true;
 				
@@ -345,9 +405,6 @@ package zszh_WorkSpace2D
 			
 			return false;
 		}
-		
 
-		
-		
 	}
 }

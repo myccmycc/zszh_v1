@@ -27,21 +27,17 @@
 			
 			private function ChangeFloor():void {
 				this.dispatchEvent(new Event(CHANGE_FLOOR));
-				
-				parentApplication.ProductsMenuMain.ButtonOneMouseDown("Button4",false);
-				parentApplication.ProductsMenuMain.ButtonTwoMouseDown("Button41");
+
 			}
 			
 			private function ChangeFloorTile():void {
 				this.dispatchEvent(new Event(CHANGE_FLOORTILE));
-				parentApplication.ProductsMenuMain.ButtonOneMouseDown("Button4",false);
-				parentApplication.ProductsMenuMain.ButtonTwoMouseDown("Button44");
+
 			}
 			
 			private function AddFurniture():void {
 				this.dispatchEvent(new Event(ADD_FURNITURE));
-				parentApplication.ProductsMenuMain.ButtonOneMouseDown("Button1",false);
-				parentApplication.ProductsMenuMain.ButtonTwoMouseDown("Button13");
+
 			}
 			
 			private function Delete():void {

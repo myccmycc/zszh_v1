@@ -9,7 +9,7 @@ package zszh_WorkSpace2D
 	
 	import zszh_Core.CommandManager;
 
-	public class Room_2DCorner extends Object2D_Base
+	public class Room_2DHoleCorner extends Object2D_Base
 	{
 		[Embed(source="../embeds/rooms/cursor_corner.png")]
 		private var _cursorCorner:Class;
@@ -18,7 +18,7 @@ package zszh_WorkSpace2D
 		public  var _posInRoom:int;
 		private var _postion:Point;
 		
-		private var _thisRoom:Object2D_Room;
+		private var _thisWall:Room_2DWall;
 		
 		public function Room_2DCorner()
 		{
@@ -38,24 +38,14 @@ package zszh_WorkSpace2D
 		
 		private function OnAdd(event:Event):void
 		{
-			_thisRoom=(this.parent as Object2D_Room);
+			_thisWall=(this.parent as Room_2DWall);
 		}
 		
 		override public function Draw():void
 		{
-			
-			var room_2d:Object2D_Room=this.parent as Object2D_Room;
-			if(room_2d)
-			{
-				_postion.x=room_2d._vertexVec1[_posInRoom];
-				_postion.y=-room_2d._vertexVec1[_posInRoom+1];
-			}
-			else 
-			{
-				_postion.x=0;
-				_postion.y=0;
-			}
-			
+			_postion.x=0;
+			_postion.y=0;
+
 			if(_selected)
 			{
 				graphics.clear();

@@ -300,7 +300,7 @@ package zszh_WorkSpace2D
 		
 		
 		//D&D
-		private var room_number:int=0;
+		private var numObject:int=0;
 		private var current_object:Object;
 		
 		
@@ -327,7 +327,7 @@ package zszh_WorkSpace2D
 				var room:Object2D_Room=new Object2D_Room(classArgument);
 				room.x=event.localX;
 				room.y=event.localY;
-				room.name=room.className+room_number++;
+				room.name=room.className+numObject++;
 				CommandManager.Instance.Add(_grid._objects2D,room);
 				
 				current_object=room as Object;
@@ -357,18 +357,7 @@ package zszh_WorkSpace2D
 				current_object=wall as Object;*/
 			}
 			
-			else if(className=="window")
-			{
-				var window:Room_2DWindows =new Room_2DWindows(new Point(-100,0),new Point(100,0));
-				window.x=event.localX;
-				window.y=event.localY;
-				
-				window.name=window.className+room_number;
-				room_number++;
-				_grid.addChild(window);
-				
-				current_object=window as Object;
-			}
+		
 		}
 	}
 }
